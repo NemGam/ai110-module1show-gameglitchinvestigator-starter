@@ -52,8 +52,16 @@ Additional issues I found:
 
 ## 📸 Demo
 
-
+![Winning demo screenshot](assets/src.png)
 
 ## 🚀 Stretch Features
 
+### UI Themes and high scores
+Retro Sunset
+![Theme demo screenshot](assets/palette1.png)
 
+Cyberpunk
+![Theme demo screenshot](assets/palette2.png)
+
+### Guess History
+![History demo screenshot](assets/history.png)

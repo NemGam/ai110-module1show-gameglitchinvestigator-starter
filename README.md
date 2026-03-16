@@ -52,7 +52,7 @@ Additional issues I found:
 
 ## 📸 Demo
 
-- [ ] [Insert a screenshot of your fixed, winning game here]
+
 
 ## 🚀 Stretch Features
 

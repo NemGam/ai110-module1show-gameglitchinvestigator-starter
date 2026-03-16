@@ -3,6 +3,7 @@ import streamlit as st
 from logic_utils import check_guess, get_range_for_difficulty, parse_guess, update_score
 
 
+#FIX: Fixed game reset function with Copilot by finding and discussing what should and should not be reset.
 def reset_game_state(low: int, high: int, difficulty: str):
     st.session_state.secret = random.randint(low, high)
     st.session_state.attempts = 0
@@ -39,6 +40,8 @@ attempt_limit_map = {
     "Hard": 5,
 }
 attempt_limit = attempt_limit_map[difficulty]
+
+#FIX: Refactored logic into logic_utils.py via Copilot's agent mode
 
 low, high = get_range_for_difficulty(difficulty)
 

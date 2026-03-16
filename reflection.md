@@ -4,9 +4,15 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 
 ## 1. What was broken when you started?
 
-- What did the game look like the first time you ran it?
-- List at least two concrete bugs you noticed at the start  
-  (for example: "the hints were backwards").
+Main issues:
+- The hints were backwards
+- Pressing "New Game" after finishing the game does nothing (except for creating a new secret number)
+- The developer debug history lags 1 turn behind the actual history
+
+Additional issues I found:
+- Final score is different from debug score
+- Number of attempts in the sidebar differs from actual allowed attempts
+- Score keeps resetting to 0 sometimes even if you submit the same guess multiple times (if the guess is close enough)
 
 ---
 

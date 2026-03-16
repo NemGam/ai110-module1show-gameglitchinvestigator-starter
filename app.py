@@ -112,6 +112,7 @@ st.info(
 )
 
 with st.expander("Developer Debug Info"):
+    print("HI!")
     st.write("Secret:", st.session_state.secret)
     st.write("Attempts:", st.session_state.attempts)
     st.write("Score:", st.session_state.score)
@@ -145,6 +146,7 @@ if st.session_state.status != "playing":
     st.stop()
 
 if submit:
+    st.write(st.session_state.secret)
     st.session_state.attempts += 1
 
     ok, guess_int, err = parse_guess(raw_guess)

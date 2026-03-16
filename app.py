@@ -1,9 +1,35 @@
 import random
 import streamlit as st
-from logic_utils import check_guess, get_range_for_difficulty, parse_guess, update_score
+from logic_utils import check_guess, get_range_for_difficulty, update_score
+import json
+import os
+
+# CSS Theme Dictionary
+THEMES = {
+    "Default (System)": "",
+    "Cyberpunk": """
+        <style>
+        .stApp { background-color: #0d0e15; }
+        h1, h2, h3, p, div, span, label { color: #00ff41 !important; }
+        [data-testid="stSidebar"] { background-color: #000000; border-right: 2px solid #00ff41; }
+        .stButton>button { border: 2px solid #00ff41; color: #00ff41 !important; background-color: transparent; }
+        .stButton>button:hover { background-color: #00ff41; color: #000000 !important; }
+        div[data-baseweb="select"] > div { background-color: #000000; border: 1px solid #00ff41; color: #00ff41; }
+        </style>
+    """,
+    "Retro Sunset": """
+        <style>
+        .stApp { background-color: #2b1055; }
+        h1, h2, h3, p, div, span, label { color: #ff9e7d !important; }
+        [data-testid="stSidebar"] { background-color: #1a083a; border-right: 2px solid #f67280; }
+        .stButton>button { background: linear-gradient(45deg, #f67280, #c06c84); color: white !important; border: none; font-weight: bold; }
+        .stButton>button:hover { filter: brightness(1.2); }
+        div[data-baseweb="select"] > div { background-color: #351c75; border: 1px solid #f67280; color: white; }
+        </style>
+    """
+}
 
 
-#FIX: Fixed game reset function with Copilot by finding and discussing what should and should not be reset.
 def reset_game_state(low: int, high: int, difficulty: str):
     st.session_state.secret = random.randint(low, high)
     st.session_state.attempts = 0
@@ -21,13 +47,44 @@ def get_feedback_message(outcome: str):
         return "📉 Go LOWER!"
     return "📈 Go HIGHER!"
 
+
+SCORES_FILE = "high_scores.json"
+
+
+def load_high_scores():
+    default_scores = {"Easy": 0, "Normal": 0, "Hard": 0}
+    if os.path.exists(SCORES_FILE):
+        try:
+            with open(SCORES_FILE, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            return default_scores
+    return default_scores
+
+
+def save_high_scores(scores):
+    with open(SCORES_FILE, "w") as f:
+        json.dump(scores, f)
+
+
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
+# Theme Switcher Logic
+st.sidebar.header("🎨 Appearance")
+selected_theme = st.sidebar.selectbox("Choose a Theme", list(THEMES.keys()))
+
+# Inject the chosen CSS
+if THEMES[selected_theme]:
+    st.markdown(THEMES[selected_theme], unsafe_allow_html=True)
+
 st.title("🎮 Game Glitch Investigator")
-st.caption("An AI-generated guessing game. Something is off.")
 
-st.sidebar.header("Settings")
+# Sidebar Configuration
+if "high_scores" not in st.session_state:
+    st.session_state.high_scores = load_high_scores()
 
+st.sidebar.divider()
+st.sidebar.header("⚙️ Settings")
 difficulty = st.sidebar.selectbox(
     "Difficulty",
     ["Easy", "Normal", "Hard"],
@@ -39,74 +96,78 @@ attempt_limit_map = {
     "Normal": 8,
     "Hard": 5,
 }
+
 attempt_limit = attempt_limit_map[difficulty]
-
-#FIX: Refactored logic into logic_utils.py via Copilot's agent mode
-
 low, high = get_range_for_difficulty(difficulty)
 
-st.sidebar.caption(f"Range: {low} to {high}")
-st.sidebar.caption(f"Attempts allowed: {attempt_limit}")
+st.sidebar.caption(f"**Range:** {low} to {high}")
+st.sidebar.caption(f"**Attempts allowed:** {attempt_limit}")
 
-required_keys = {"secret", "attempts", "score", "status", "history", "game_difficulty", "game_id"}
-if not required_keys.issubset(st.session_state.keys()):
-    reset_game_state(low, high, difficulty)
-elif st.session_state.game_difficulty != difficulty:
+# Initialize or Check State
+required_keys = {"secret", "attempts", "score",
+                 "status", "history", "game_difficulty", "game_id"}
+if not required_keys.issubset(st.session_state.keys()) or st.session_state.game_difficulty != difficulty:
     reset_game_state(low, high, difficulty)
 
+st.sidebar.divider()
+st.sidebar.header("🏆 High Scores")
+
+# Display the high scores using Streamlit's native metric component
+for diff_level, best_score in st.session_state.high_scores.items():
+    st.sidebar.metric(label=f"{diff_level} Best", value=best_score)
+
+# Main Game UI
 st.subheader("Make a guess")
+attempts_left = attempt_limit - st.session_state.attempts
 
-st.info(
-    f"Guess a number between {low} and {high}. "
-    f"Attempts left: {attempt_limit - st.session_state.attempts}"
-)
+# Visual Progress Bar for Attempts
+progress_fraction = max(0.0, attempts_left / attempt_limit)
+st.progress(progress_fraction, text=f"Attempts left: {attempts_left}")
 
-with st.expander("Developer Debug Info"):
-    st.write("Secret:", st.session_state.secret)
-    st.write("Attempts:", st.session_state.attempts)
-    st.write("Score:", st.session_state.score)
-    st.write("Difficulty:", difficulty)
-    st.write("History:", st.session_state.history)
-
-raw_guess = st.text_input(
-    "Enter your guess:",
-    key=f"guess_input_{difficulty}_{st.session_state.game_id}"
-)
-
-col1, col2, col3 = st.columns(3)
-with col1:
-    submit = st.button("Submit Guess 🚀")
-with col2:
-    new_game = st.button("New Game 🔁")
-with col3:
-    show_hint = st.checkbox("Show hint", value=True)
-
-if new_game:
-    reset_game_state(low, high, difficulty)
-    st.success("New game started.")
-    st.rerun()
-
+# Game Over / Win State Checks
 if st.session_state.status != "playing":
     if st.session_state.status == "won":
-        st.success("You already won. Start a new game to play again.")
+        st.balloons()
+        st.success(
+            f"You won! The secret was {st.session_state.secret}. Final score: {st.session_state.score}")
     else:
-        st.error("Game over. Start a new game to try again.")
+        st.error(
+            f"Game over! The secret was {st.session_state.secret}. Final score: {st.session_state.score}")
+
+    if st.button("New Game 🔁"):
+        reset_game_state(low, high, difficulty)
+        st.rerun()
     st.stop()
 
-if submit:
-    ok, guess_int, err = parse_guess(raw_guess)
+# Gameplay Form
+with st.form("guess_form", clear_on_submit=True):
+    guess_int = st.number_input(
+        f"Enter a number between {low} and {high}:",
+        step=1
+    )
 
-    if not ok:
-        st.error(err)
+    col1, col2, col3 = st.columns([1, 1, 2])
+    with col1:
+        submit = st.form_submit_button("Submit Guess 🚀")
+    with col2:
+        show_hint = st.checkbox("Show hints", value=True)
+
+# Out-of-form New Game Button
+if st.button("Restart Game 🔁"):
+    reset_game_state(low, high, difficulty)
+    st.rerun()
+
+# Logic Execution
+if submit:
+    if guess_int < low or guess_int > high:
+        st.error(
+            f"⚠️ Whoops! **{guess_int}** is out of bounds. Please guess a number between {low} and {high}.")
     else:
         st.session_state.attempts += 1
         st.session_state.history.append(guess_int)
 
         outcome = check_guess(guess_int, st.session_state.secret)
         message = get_feedback_message(outcome)
-
-        if show_hint and outcome != "Win":
-            st.warning(message)
 
         st.session_state.score = update_score(
             current_score=st.session_state.score,
@@ -115,20 +176,29 @@ if submit:
         )
 
         if outcome == "Win":
-            st.balloons()
             st.session_state.status = "won"
-            st.success(
-                f"You won! The secret was {st.session_state.secret}. "
-                f"Final score: {st.session_state.score}"
-            )
+
+            current_difficulty = st.session_state.game_difficulty
+            if st.session_state.score > st.session_state.high_scores[current_difficulty]:
+                st.session_state.high_scores[current_difficulty] = st.session_state.score
+                st.toast(f"New High Score for {current_difficulty}!", icon="🏆")
+                save_high_scores(st.session_state.high_scores)
+
+            st.rerun()
         else:
-            if st.session_state.attempts >= attempt_limit: 
+            if show_hint:
+                st.warning(f"**{guess_int}** was incorrect. {message}")
+
+            if st.session_state.attempts >= attempt_limit:
                 st.session_state.status = "lost"
-                st.error(
-                    f"Out of attempts! "
-                    f"The secret was {st.session_state.secret}. "
-                    f"Score: {st.session_state.score}"
-                )
+                st.rerun()
+
+# History Display
+if st.session_state.history:
+    st.divider()
+    st.subheader("📜 Guess History")
+    history_str = " → ".join([str(g) for g in st.session_state.history])
+    st.info(history_str)
 
 st.divider()
-st.caption("Built by an AI that claims this code is production-ready.")
+st.caption("Built by an AI that claims this code is production-ready. (And is now styling via CSS injection).")

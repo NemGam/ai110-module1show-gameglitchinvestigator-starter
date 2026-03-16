@@ -25,9 +25,30 @@ It wrote the code, ran away, and now the game is unplayable.
 
 ## 📝 Document Your Experience
 
-- [ ] Describe the game's purpose.
-- [ ] Detail which bugs you found.
-- [ ] Explain what fixes you applied.
+- [X] Describe the game's purpose.
+
+The game's purpose is to guess a number in some range in a limited number of guesses.
+
+- [X] Detail which bugs you found.
+
+Main issues:
+- The hints were backwards
+- Pressing "New Game" after finishing the game does nothing (except for creating a new secret number)
+- The developer debug history lags 1 turn behind the actual history
+
+Additional issues I found:
+- Final score is different from debug score
+- Number of attempts in the sidebar differs from actual allowed attempts
+- Score keeps resetting to 0 sometimes even if you submit the same guess multiple times (if the guess is close enough)
+
+
+- [X] Explain what fixes you applied.
+
+1. Fixed hints being backwards (by changing signs)
+2. New Game now properly resets the state.
+3. Developer Debug was removed completely
+4. Synchronized attempts counters
+5. Score is counted correctly now
 
 ## 📸 Demo
 
@@ -35,4 +56,4 @@ It wrote the code, ran away, and now the game is unplayable.
 
 ## 🚀 Stretch Features
 
-- [ ] [If you choose to complete Challenge 4, insert a screenshot of your Enhanced Game UI here]
+
